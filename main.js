@@ -1,10 +1,9 @@
 const buttonAdd = document.getElementById('addButton');
 const authorizedForm = document.getElementById('authorizedAddForm');
 const listElement = document.getElementById('list');
-const inputElement = document.getElementById('nameInput');
+let inputElement = document.getElementById('nameInput');
 const textareaElement = document.getElementById('commitInput');
 const toAuthorizationButton = document.getElementById('toAuthorizationButton');
-const loginArea = document.getElementById('loginInput');
 const passwordArea = document.getElementById('passwordInput');
 const notAuthorizedForm = document.getElementById('notAuthorized');
 const regForm = document.getElementById('registration');
@@ -22,9 +21,10 @@ const authHost = "https://wedev-api.sky.pro/api/user";
 document.getElementById('notAuthorizednameInput').readOnly = true;
 document.getElementById('notAuthorizedcommitInput').readOnly = true;
 document.getElementById('nameInput').readOnly = true;
-
 let comments = [];
-let user;
+let user = [];
+let userName;
+let userToken;
 
 document.getElementById('toAuthorizationButton').disabled = true;
 document.getElementById('toAuthorizationButton').textContent = "Обработка...";
@@ -102,7 +102,8 @@ buttonAdd.addEventListener('click', () => {
 toAuthorizationButton.addEventListener('click', () => {
     listElement.style.display = 'none';
     notAuthorizedForm.style.display = 'none';
-    autorizationForm.style.display = 'block';
+    autorizationForm.style.display = 'flex';
+    location.hash = "#autorization";
 });
 
 authConfirmButton.addEventListener('click', () => {
@@ -120,7 +121,10 @@ authConfirmButton.addEventListener('click', () => {
         alert('Укажите Пароль')
         return;
     };
-    authFetch()
+    authFetch();
+    autorizationForm.style.display = 'none';
+    listElement.style.display = 'flex';
+    authorizedForm.style.display = 'flex';
 });
 
 toRegBtn.addEventListener('click', () => {
@@ -156,8 +160,11 @@ function commitAnswer() {
 };
 
 function getFetch() {
-    return fetch(host, {
-        method: "GET"
+    fetch(host, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${userToken}`
+        }
     })
         .then((response) => {
             return response.json()
@@ -181,12 +188,17 @@ function getFetch() {
         .then(() => {
             document.getElementById('toAuthorizationButton').disabled = false;
             document.getElementById('toAuthorizationButton').textContent = "Авторизация";
-            inputElement.value = '';
+            document.getElementById('addButton').disabled = false;
+            document.getElementById('addButton').textContent = "Написать";
+            inputElement.value = user.name;
             textareaElement.value = '';
         })
         .catch((error) => {
             document.getElementById('toAuthorizationButton').disabled = false;
             document.getElementById('toAuthorizationButton').textContent = "Авторизация";
+            document.getElementById('addButton').disabled = false;
+            document.getElementById('addButton').textContent = "Написать";
+            inputElement.value = user.name;
             alert(error.message);
         });
 };
@@ -196,6 +208,9 @@ function postFetch() {
     buttonAdd.textContent = "Добавляем комментарий...";
     return fetch(host, {
         method: "POST",
+        headers: {
+            Authorization: `Bearer ${user.token}`
+        },
         body: JSON.stringify({
             text: textareaElement.value
                 .replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
@@ -211,9 +226,9 @@ function postFetch() {
                 throw new Error('Сервер покинул чат');
             }
         })
-        .then((response) => {
-            getFetch();
-        })
+        .then(
+            getFetch()
+        )
         .catch((error) => {
             buttonAdd.disabled = false;
             buttonAdd.textContent = "Написать";
@@ -224,18 +239,19 @@ function authFetch() {
     fetch(authHost + '/login', {
         method: "POST",
         body: JSON.stringify({
-            login: loginArea.value,
+            login: authLoginInput.value,
             password: passwordArea.value
         })
     })
         .then((response) => {
-            console.log(response);
             if (response.status === 400) {
                 throw new Error('Неверное имя пользователя или пароль')
             }
-        })
-        .then((response) => {
             return response.json();
+        })
+        .then((responseData) => {
+            user = responseData.user;
+            inputElement.value = user.name;
         })
         .catch((error) => {
             alert(error.message);
@@ -259,26 +275,10 @@ function regFetch() {
         .then((response) => {
             response.json();
         })
-        .then((responseData) => {
-            const appUser = responseData.users.map((user) => {
-                return {
-                    name: user.name,
-                    token: user.token
-                }
-            });
-            user = appUser;
-            console.log(user);
-        })
         .catch((error) => {
             alert(error.message);
         });
 }
 
-// function userFetch() {
-//     return fetch(authHost)
-//         .then((response) => {
-//             console.log(response.json());
-//         });
-// }
-// userFetch()
 console.log("It works!");
+console.log(userName);
