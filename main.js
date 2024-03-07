@@ -1,30 +1,22 @@
+import { inputElement, user, authLoginInput, autorizationForm, listElement } from "./api.js";
+import { getFetchModule, postFetchModule, authFetch, regFetch } from "./api.js";
+
 const buttonAdd = document.getElementById('addButton');
-const authorizedForm = document.getElementById('authorizedAddForm');
-const listElement = document.getElementById('list');
-const inputElement = document.getElementById('nameInput');
 const textareaElement = document.getElementById('commitInput');
 const toAuthorizationButton = document.getElementById('toAuthorizationButton');
-const passwordArea = document.getElementById('passwordInput');
 const notAuthorizedForm = document.getElementById('notAuthorized');
 const regForm = document.getElementById('registration');
 const regNameInput = document.getElementById('regName');
 const regLoginInput = document.getElementById('regLogin');
 const regPasswordInput = document.getElementById('regPassword');
 const regBtn = document.getElementById('confirmRegBtn');
-const autorizationForm = document.getElementById('autorization');
 const authConfirmButton = document.getElementById('authorizationConfirmButton');
 const toRegBtn = document.getElementById('toRegBtn');
-const authLoginInput = document.getElementById('loginInput');
 const authPasswordInput = document.getElementById('passwordInput');
-const host = "https://wedev-api.sky.pro/api/v2/:aleksandr-penkov/comments";
-const authHost = "https://wedev-api.sky.pro/api/user";
 document.getElementById('notAuthorizednameInput').readOnly = true;
 document.getElementById('notAuthorizedcommitInput').readOnly = true;
 document.getElementById('nameInput').readOnly = true;
 let comments = [];
-let user = [];
-let userName;
-let userToken;
 
 document.getElementById('toAuthorizationButton').disabled = true;
 document.getElementById('toAuthorizationButton').textContent = "Обработка...";
@@ -36,12 +28,16 @@ const initEventListener = () => {
         likeButtonElement.addEventListener('click', event => {
             event.stopPropagation();
             const index = likeButtonElement.dataset.index;
-            if (!comments[index].isLiked) {
-                comments[index].likes++;
-                comments[index].isLiked = true;
+            if (user.name !== undefined) {
+                if (!comments[index].isLiked) {
+                    comments[index].likes++;
+                    comments[index].isLiked = true;
+                } else {
+                    comments[index].likes--;
+                    comments[index].isLiked = false;
+                }
             } else {
-                comments[index].likes--;
-                comments[index].isLiked = false;
+                alert('Авторизуйтесь, чтобы поставить "Лайк"')
             };
             renderComments();
         });
@@ -122,14 +118,11 @@ authConfirmButton.addEventListener('click', () => {
         return;
     };
     authFetch();
-    autorizationForm.style.display = 'none';
-    listElement.style.display = 'flex';
-    authorizedForm.style.display = 'flex';
 });
 
 toRegBtn.addEventListener('click', () => {
     autorizationForm.style.display = 'none';
-    regForm.style.display = 'block';
+    regForm.style.display = 'flex';
 });
 
 regBtn.addEventListener('click', () => {
@@ -141,7 +134,7 @@ regBtn.addEventListener('click', () => {
         .then(
             alert('Регистрация прошла успешно. Используйте указанный при регистрации Логин и Пароль для авторизации.')
         );
-    autorizationForm.style.display = 'block';
+    autorizationForm.style.display = 'flex';
     regForm.style.display = 'none';
 });
 
@@ -160,15 +153,7 @@ function commitAnswer() {
 };
 
 function getFetch() {
-    fetch(host, {
-        method: "GET",
-        headers: {
-            Authorization: `Bearer ${userToken}`
-        }
-    })
-        .then((response) => {
-            return response.json()
-        })
+    getFetchModule()
         .then((responseData) => {
             const appComments = responseData.comments.map((comment) => {
                 return {
@@ -206,18 +191,7 @@ function getFetch() {
 function postFetch() {
     buttonAdd.disabled = true;
     buttonAdd.textContent = "Добавляем комментарий...";
-    return fetch(host, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${user.token}`
-        },
-        body: JSON.stringify({
-            text: textareaElement.value
-                .replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
-            name: inputElement.value
-                .replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
-        })
-    })
+    postFetchModule()
         .then((response) => {
             if (response.status === 400) {
                 throw new Error('Имя или текст комментария короче 3-х символов');
@@ -226,59 +200,14 @@ function postFetch() {
                 throw new Error('Сервер покинул чат');
             }
         })
-        .then(
+        .then(() => {
             getFetch()
-        )
+        })
         .catch((error) => {
             buttonAdd.disabled = false;
             buttonAdd.textContent = "Написать";
             alert(error.message);
         });
 };
-function authFetch() {
-    fetch(authHost + '/login', {
-        method: "POST",
-        body: JSON.stringify({
-            login: authLoginInput.value,
-            password: passwordArea.value
-        })
-    })
-        .then((response) => {
-            if (response.status === 400) {
-                throw new Error('Неверное имя пользователя или пароль')
-            }
-            return response.json();
-        })
-        .then((responseData) => {
-            user = responseData.user;
-            inputElement.value = user.name;
-        })
-        .catch((error) => {
-            alert(error.message);
-        });
-}
-
-function regFetch() {
-    return fetch(authHost, {
-        method: "POST",
-        body: JSON.stringify({
-            login: document.getElementById('regLogin').value,
-            password: document.getElementById('regPassword').value,
-            name: document.getElementById('regName').value
-        })
-    })
-        .then((response) => {
-            if (response.status === 400) {
-                throw new Error('Пользователь с таким логином уже существует')
-            }
-        })
-        .then((response) => {
-            response.json();
-        })
-        .catch((error) => {
-            alert(error.message);
-        });
-}
 
 console.log("It works!");
-console.log(userName);
