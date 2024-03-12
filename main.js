@@ -1,13 +1,25 @@
-import { getFetchModule, postFetchModule } from "./api.js";
+import { inputElement, user, authLoginInput, autorizationForm, listElement } from "./api.js";
+import { getFetchModule, postFetchModule, authFetch, regFetch } from "./api.js";
 
 const buttonAdd = document.getElementById('addButton');
-const listElement = document.getElementById('list');
-const inputElement = document.getElementById('nameInput');
 const textareaElement = document.getElementById('commitInput');
+const toAuthorizationButton = document.getElementById('toAuthorizationButton');
+const notAuthorizedForm = document.getElementById('notAuthorized');
+const regForm = document.getElementById('registration');
+const regNameInput = document.getElementById('regName');
+const regLoginInput = document.getElementById('regLogin');
+const regPasswordInput = document.getElementById('regPassword');
+const regBtn = document.getElementById('confirmRegBtn');
+const authConfirmButton = document.getElementById('authorizationConfirmButton');
+const toRegBtn = document.getElementById('toRegBtn');
+const authPasswordInput = document.getElementById('passwordInput');
+document.getElementById('notAuthorizednameInput').readOnly = true;
+document.getElementById('notAuthorizedcommitInput').readOnly = true;
+document.getElementById('nameInput').readOnly = true;
 let comments = [];
 
-buttonAdd.disabled = true;
-buttonAdd.textContent = "Обработка...";
+document.getElementById('toAuthorizationButton').disabled = true;
+document.getElementById('toAuthorizationButton').textContent = "Обработка...";
 getFetch();
 
 const initEventListener = () => {
@@ -16,12 +28,16 @@ const initEventListener = () => {
         likeButtonElement.addEventListener('click', event => {
             event.stopPropagation();
             const index = likeButtonElement.dataset.index;
-            if (!comments[index].isLiked) {
-                comments[index].likes++;
-                comments[index].isLiked = true;
+            if (user.name !== undefined) {
+                if (!comments[index].isLiked) {
+                    comments[index].likes++;
+                    comments[index].isLiked = true;
+                } else {
+                    comments[index].likes--;
+                    comments[index].isLiked = false;
+                }
             } else {
-                comments[index].likes--;
-                comments[index].isLiked = false;
+                alert('Авторизуйтесь, чтобы поставить "Лайк"')
             };
             renderComments();
         });
@@ -79,6 +95,49 @@ buttonAdd.addEventListener('click', () => {
     };
 });
 
+toAuthorizationButton.addEventListener('click', () => {
+    listElement.style.display = 'none';
+    notAuthorizedForm.style.display = 'none';
+    autorizationForm.style.display = 'flex';
+    location.hash = "#autorization";
+});
+
+authConfirmButton.addEventListener('click', () => {
+    if (authLoginInput.value === '' && authPasswordInput.value === '') {
+        authLoginInput.style.backgroundColor = 'pink';
+        authPasswordInput.style.backgroundColor = 'pink';
+        alert('Укажите Логин и Пароль')
+        return;
+    } else if (authLoginInput.value === '') {
+        authLoginInput.style.backgroundColor = 'pink';
+        alert('Укажите Логин')
+        return;
+    } else if (authPasswordInput.value === '') {
+        authPasswordInput.style.backgroundColor = 'pink';
+        alert('Укажите Пароль')
+        return;
+    };
+    authFetch();
+});
+
+toRegBtn.addEventListener('click', () => {
+    autorizationForm.style.display = 'none';
+    regForm.style.display = 'flex';
+});
+
+regBtn.addEventListener('click', () => {
+    if (regNameInput.value === '' || regLoginInput.value === '' || regPasswordInput.value === '') {
+        alert('Заполните все поля')
+        return;
+    };
+    regFetch()
+        .then(
+            alert('Регистрация прошла успешно. Используйте указанный при регистрации Логин и Пароль для авторизации.')
+        );
+    autorizationForm.style.display = 'flex';
+    regForm.style.display = 'none';
+});
+
 function sanitizeHtml(htmlString) {
     return htmlString.replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 };
@@ -94,31 +153,37 @@ function commitAnswer() {
 };
 
 function getFetch() {
-    getFetchModule().then((responseData) => {
-        const appComments = responseData.comments.map((comment) => {
-            return {
-                id: comment.id,
-                name: comment.author.name,
-                date: new Date(comment.date).toLocaleString('ru-RU', {
-                    year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
-                }).replace(',', ''),
-                text: comment.text,
-                likes: comment.likes,
-                isLiked: false,
-            };
-        });
-        comments = appComments;
-        renderComments();
-    })
+    getFetchModule()
+        .then((responseData) => {
+            const appComments = responseData.comments.map((comment) => {
+                return {
+                    id: comment.id,
+                    name: comment.author.name,
+                    date: new Date(comment.date).toLocaleString('ru-RU', {
+                        year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+                    }).replace(',', ''),
+                    text: comment.text,
+                    likes: comment.likes,
+                    isLiked: false,
+                };
+            });
+            comments = appComments;
+            renderComments();
+        })
         .then(() => {
-            buttonAdd.disabled = false;
-            buttonAdd.textContent = "Написать";
-            inputElement.value = '';
+            document.getElementById('toAuthorizationButton').disabled = false;
+            document.getElementById('toAuthorizationButton').textContent = "Авторизация";
+            document.getElementById('addButton').disabled = false;
+            document.getElementById('addButton').textContent = "Написать";
+            inputElement.value = user.name;
             textareaElement.value = '';
         })
         .catch((error) => {
-            buttonAdd.disabled = false;
-            buttonAdd.textContent = "Написать";
+            document.getElementById('toAuthorizationButton').disabled = false;
+            document.getElementById('toAuthorizationButton').textContent = "Авторизация";
+            document.getElementById('addButton').disabled = false;
+            document.getElementById('addButton').textContent = "Написать";
+            inputElement.value = user.name;
             alert(error.message);
         });
 };
@@ -126,16 +191,17 @@ function getFetch() {
 function postFetch() {
     buttonAdd.disabled = true;
     buttonAdd.textContent = "Добавляем комментарий...";
-    postFetchModule().then((response) => {
-        if (response.status === 400) {
-            throw new Error('Имя или текст комментария короче 3-х символов');
-        }
-        if (response.status === 500) {
-            throw new Error('Сервер покинул чат');
-        }
-    })
+    postFetchModule()
         .then((response) => {
-            getFetch();
+            if (response.status === 400) {
+                throw new Error('Имя или текст комментария короче 3-х символов');
+            }
+            if (response.status === 500) {
+                throw new Error('Сервер покинул чат');
+            }
+        })
+        .then(() => {
+            getFetch()
         })
         .catch((error) => {
             buttonAdd.disabled = false;
