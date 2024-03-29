@@ -160,7 +160,7 @@ function getFetch() {
                 return {
                     id: comment.id,
                     name: comment.author.name,
-                    date: format(new Date(comment.date), "yyyy-MM-dd hh.mm.ss"),
+                    date: format(new Date(comment.date), "yyyy-MM-dd HH.mm.ss"),
                     text: comment.text,
                     likes: comment.likes,
                     isLiked: false,
