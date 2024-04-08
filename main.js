@@ -1,5 +1,6 @@
 import { inputElement, user, authLoginInput, autorizationForm, listElement } from "./api.js";
 import { getFetchModule, postFetchModule, authFetch, regFetch } from "./api.js";
+import { format } from 'date-fns';
 
 const buttonAdd = document.getElementById('addButton');
 const textareaElement = document.getElementById('commitInput');
@@ -18,8 +19,8 @@ document.getElementById('notAuthorizedcommitInput').readOnly = true;
 document.getElementById('nameInput').readOnly = true;
 let comments = [];
 
-document.getElementById('toAuthorizationButton').disabled = true;
-document.getElementById('toAuthorizationButton').textContent = "Обработка...";
+toAuthorizationButton.disabled = true;
+toAuthorizationButton.textContent = "Обработка...";
 getFetch();
 
 const initEventListener = () => {
@@ -159,9 +160,7 @@ function getFetch() {
                 return {
                     id: comment.id,
                     name: comment.author.name,
-                    date: new Date(comment.date).toLocaleString('ru-RU', {
-                        year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
-                    }).replace(',', ''),
+                    date: format(new Date(comment.date), "yyyy-MM-dd hh.mm.ss"),
                     text: comment.text,
                     likes: comment.likes,
                     isLiked: false,
@@ -171,18 +170,18 @@ function getFetch() {
             renderComments();
         })
         .then(() => {
-            document.getElementById('toAuthorizationButton').disabled = false;
-            document.getElementById('toAuthorizationButton').textContent = "Авторизация";
-            document.getElementById('addButton').disabled = false;
-            document.getElementById('addButton').textContent = "Написать";
+            toAuthorizationButton.disabled = false;
+            toAuthorizationButton.textContent = "Авторизация";
+            buttonAdd.disabled = false;
+            buttonAdd.textContent = "Написать";
             inputElement.value = user.name;
             textareaElement.value = '';
         })
         .catch((error) => {
-            document.getElementById('toAuthorizationButton').disabled = false;
-            document.getElementById('toAuthorizationButton').textContent = "Авторизация";
-            document.getElementById('addButton').disabled = false;
-            document.getElementById('addButton').textContent = "Написать";
+            toAuthorizationButton.disabled = false;
+            toAuthorizationButton.textContent = "Авторизация";
+            buttonAdd.disabled = false;
+            buttonAdd.textContent = "Написать";
             inputElement.value = user.name;
             alert(error.message);
         });
